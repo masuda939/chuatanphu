@@ -104,36 +104,99 @@ try {
 renderMessages();
 document.querySelector('#profile-name').textContent = currentName;
 
-async function startCommunityChat() {
-  if (!supabase) return;
+const RELAY_URL = 'wss://broker.emqx.io:8084/mqtt';
+const RELAY_TOPIC = 'chuatanphu/community/v1';
+const relay = { client: null, id: null, peers: new Map(), timer: null, mode: 'offline' };
+const toneCycle = ['sage', 'gold', 'rose', 'blue'];
+
+function pushIncoming(entry) {
+  if (!entry || !entry.text) return;
+  if (entry.id && messageRows.some((row) => row.id === entry.id)) return;
+  messageRows.push({ id: entry.id, name: entry.name || 'Đạo hữu', text: entry.text, time: entry.time || timeNow(), tone: toneCycle[messageRows.length % 4] });
+  messageRows = messageRows.slice(-35);
+  renderMessages();
+}
+function setPresence(count) {
+  document.querySelector('#online-count').textContent = count === 1 ? '1 người đang ở đây' : `${count} người đang ở đây`;
+  document.querySelector('#scene-visitor-count').textContent = `${count} đạo hữu đang ghé thăm`;
+}
+function relayPublish(payload) {
+  if (!relay.client?.connected) return false;
+  relay.client.publish(RELAY_TOPIC, JSON.stringify(payload), { qos: 0 });
+  return true;
+}
+function announcePresence() {
+  if (!relay.id) return;
+  relayPublish({ type: 'hi', id: relay.id, name: currentName, ts: Date.now() });
+  const cutoff = Date.now() - 50000;
+  for (const [id, peer] of relay.peers) if (peer.ts < cutoff) relay.peers.delete(id);
+  setPresence(relay.peers.size + 1);
+}
+
+async function startRelayChat() {
   try {
-    const { data, error } = await supabase.from(CHAT_TABLE).select('name,text,created_at').order('created_at', { ascending: true }).limit(35);
-    if (error) throw error;
-    messageRows = (data || []).map((item, index) => ({ id: item.id, name: item.name, text: item.text, time: new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(item.created_at)), tone: ['sage', 'gold', 'rose', 'blue'][index % 4] }));
-    renderMessages();
-    channel = supabase.channel('an-lac-community-chat').on('presence', { event: 'sync' }, () => {
-      const visitors = Object.values(channel.presenceState()).reduce((sum, sessions) => sum + sessions.length, 0);
-      document.querySelector('#online-count').textContent = `${visitors} người đang ở đây`;
-      document.querySelector('#scene-visitor-count').textContent = `${visitors} đạo hữu đang ghé thăm`;
-      document.querySelector('#chat-live-dot').classList.toggle('chat-live', visitors > 0);
-    }).on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_TABLE }, (payload) => {
-      const row = payload.new;
-      if (messageRows.some((message) => message.id && message.id === row.id)) return;
-      messageRows.push({ id: row.id, name: row.name, text: row.text, time: new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(row.created_at)), tone: ['sage', 'gold', 'rose', 'blue'][messageRows.length % 4] });
-      messageRows = messageRows.slice(-35);
-      renderMessages();
-    }).subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        document.querySelector('#online-count').textContent = 'Đang kết nối';
-        document.querySelector('#scene-visitor-count').textContent = 'Phòng chat cộng đồng';
-        await channel.track({ name: currentName, joined_at: new Date().toISOString() });
+    const { connect } = await import('mqtt');
+    relay.mode = 'relay';
+    relay.id = `devotee-${Math.random().toString(16).slice(2, 10)}`;
+    relay.client = connect(RELAY_URL, { clientId: relay.id, clean: true, connectTimeout: 9000, reconnectPeriod: 4000 });
+    relay.client.on('connect', () => {
+      relay.client.subscribe(RELAY_TOPIC, { qos: 0 });
+      document.querySelector('#chat-live-dot').classList.add('chat-live');
+      announcePresence();
+      notify('Đã vào phòng trò chuyện chung. Mời bạn sẻ chia lời lành.');
+    });
+    relay.client.on('message', (_topic, payload) => {
+      let data;
+      try { data = JSON.parse(payload.toString()); } catch { return; }
+      if (!data || data.id === relay.id) return;
+      if (data.type === 'hi') {
+        relay.peers.set(data.id, { name: data.name, ts: Date.now() });
+        setPresence(relay.peers.size + 1);
+      } else if (data.type === 'bye') {
+        relay.peers.delete(data.id);
+        setPresence(relay.peers.size + 1);
+      } else if (data.type === 'msg') {
+        pushIncoming({ id: data.id + ':' + data.ts, name: data.name, text: data.text, time: timeNow() });
       }
     });
+    relay.client.on('error', () => {});
+    relay.client.on('close', () => document.querySelector('#chat-live-dot').classList.remove('chat-live'));
+    relay.timer = window.setInterval(announcePresence, 18000);
+    window.addEventListener('pagehide', () => {
+      relayPublish({ type: 'bye', id: relay.id, ts: Date.now() });
+      relay.client?.end(true);
+    });
   } catch (error) {
-    console.warn('Live chat not connected; local chat remains available.', error.message);
-    document.querySelector('#online-count').textContent = 'Chưa kết nối';
-    document.querySelector('#scene-visitor-count').textContent = 'Mời bạn an tọa';
+    console.warn('Community relay unavailable; local chat remains.', error.message);
+    relay.mode = 'local';
   }
+}
+
+async function startCommunityChat() {
+  if (supabase) {
+    try {
+      const { error } = await supabase.from(CHAT_TABLE).select('id').limit(1);
+      if (error) throw error;
+      const { data } = await supabase.from(CHAT_TABLE).select('id,name,text,created_at').order('created_at', { ascending: true }).limit(35);
+      messageRows = (data || []).map((item, index) => ({ id: item.id, name: item.name, text: item.text, time: new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(item.created_at)), tone: toneCycle[index % 4] }));
+      renderMessages();
+      relay.mode = 'supabase';
+      channel = supabase.channel('an-lac-community-chat').on('presence', { event: 'sync' }, () => {
+        const visitors = Object.values(channel.presenceState()).reduce((sum, sessions) => sum + sessions.length, 0);
+        setPresence(visitors);
+        document.querySelector('#chat-live-dot').classList.add('chat-live');
+      }).on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_TABLE }, (payload) => {
+        const row = payload.new;
+        pushIncoming({ id: row.id, name: row.name, text: row.text, time: new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(row.created_at)) });
+      }).subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') await channel.track({ name: currentName, joined_at: new Date().toISOString() });
+      });
+      return;
+    } catch (error) {
+      console.warn('Supabase chat table is not ready; using the community relay.', error.message);
+    }
+  }
+  await startRelayChat();
 }
 startCommunityChat();
 
@@ -145,6 +208,7 @@ document.querySelector('#profile-button').addEventListener('click', () => {
   currentName = clean;
   localStorage.setItem('an-lac-name', currentName);
   document.querySelector('#profile-name').textContent = currentName;
+  if (relay.mode === 'relay') relayPublish({ type: 'hi', id: relay.id, name: currentName, ts: Date.now() });
   channel?.track({ name: currentName, joined_at: new Date().toISOString() }).catch(() => {});
   notify(`Chào ${currentName}, mời bạn an tọa.`);
 });
@@ -157,20 +221,21 @@ document.querySelector('#chat-form').addEventListener('submit', async (event) =>
   if (text.length > 220) return notify('Tin nhắn tối đa 220 ký tự.');
   if (Date.now() - lastMessageAt < 1500) return notify('Bạn chờ một chút trước khi gửi tin tiếp nhé.');
   lastMessageAt = Date.now();
-  const message = { name: currentName, text, time: timeNow(), tone: ['sage', 'gold', 'rose', 'blue'][messageRows.length % 4] };
-  if (supabase) {
+  const message = { name: currentName, text, time: timeNow(), tone: toneCycle[messageRows.length % 4] };
+
+  if (relay.mode === 'supabase') {
     const { data, error } = await supabase.from(CHAT_TABLE).insert({ name: currentName, text }).select('id,name,text,created_at').single();
     if (error) {
       lastMessageAt = 0;
-      return notify('Chưa gửi được tin nhắn. Kiểm tra cài đặt kết nối chat nhé.');
+      return notify('Chưa gửi được tin nhắn. Xin thử lại sau ít phút.');
     }
-    if (data) {
-      messageRows.push({ id: data.id, name: data.name, text: data.text, time: timeNow(), tone: ['sage', 'gold', 'rose', 'blue'][messageRows.length % 4] });
-      messageRows = messageRows.slice(-35);
-      renderMessages();
-    }
-  } else {
+    if (data) pushIncoming({ id: data.id, name: data.name, text: data.text, time: timeNow() });
+  } else if (relay.mode === 'relay' && relay.client?.connected) {
+    relayPublish({ type: 'msg', id: relay.id, name: currentName, text, ts: Date.now() });
     messageRows.push(message);
+    messageRows = messageRows.slice(-35);
+    renderMessages();
+  } else {
     const userMessages = [...messageRows.filter((row) => row.isLocal), { ...message, isLocal: true }].slice(-15);
     messageRows = [...initialMessages, ...userMessages];
     try { localStorage.setItem(demoStore, JSON.stringify(userMessages)); } catch { /* private browsing */ }
