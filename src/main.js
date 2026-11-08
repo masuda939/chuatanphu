@@ -63,7 +63,7 @@ app.innerHTML = `
         </div>
 
         <aside class="chat-card" id="community">
-          <div class="chat-heading"><div><span class="chat-heading-icon">${icons.people}</span><div><h2>Đạo hữu gần xa</h2><p><span class="chat-live" id="chat-live-dot"></span><span id="online-count">Bản xem thử</span></p></div></div><button class="chat-menu" title="Cộng đồng an lành" aria-label="Thông tin">···</button></div>
+          <div class="chat-heading"><div><span class="chat-heading-icon">${icons.people}</span><div><h2>Đạo hữu gần xa</h2><p><span class="chat-live" id="chat-live-dot"></span><span id="online-count">Đang mở phòng</span></p></div></div><button class="chat-menu" title="Cộng đồng an lành" aria-label="Thông tin">···</button></div>
           <div class="chat-rule"></div><div class="chat-context">Cùng nhau giữ lời nói hiền hòa, sẻ chia điều an lành. 🙏</div>
           <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Tin nhắn cộng đồng"></div>
           <form class="chat-form" id="chat-form"><label for="chat-input" class="sr-only">Tin nhắn của bạn</label><input id="chat-input" name="message" maxlength="220" autocomplete="off" placeholder="Gửi lời chào an lành..."/><button type="submit" aria-label="Gửi tin nhắn"><span>↑</span></button></form>
@@ -131,7 +131,8 @@ async function startCommunityChat() {
     });
   } catch (error) {
     console.warn('Live chat not connected; local chat remains available.', error.message);
-    notify('Trò chuyện trực tuyến chưa được kết nối; bạn vẫn có thể xem bản xem trước.');
+    document.querySelector('#online-count').textContent = 'Chưa kết nối';
+    document.querySelector('#scene-visitor-count').textContent = 'Mời bạn an tọa';
   }
 }
 startCommunityChat();
