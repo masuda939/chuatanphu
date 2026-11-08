@@ -19,7 +19,7 @@ const initialMessages = [
   { name: 'Thiện Tâm', text: 'Mình vừa thả một đèn hoa đăng cho gia đình.', tone: 'rose', time: '19:43' },
   { name: 'Minh Đăng', text: 'Chúc quý đạo hữu buổi tối an yên.', tone: 'blue', time: '19:44' },
 ];
-let currentName = localStorage.getItem('an-lac-name') || 'Khách An Lạc';
+let currentName = localStorage.getItem('an-lac-name') || 'Khách Tân Phú';
 let messageRows = [];
 let channel;
 let bellSound = true;
@@ -29,7 +29,7 @@ const timeNow = () => new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute
 app.innerHTML = `
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="#home" aria-label="An Lạc - Trang chủ"><span class="brand-mark">${icons.lotus}</span><span class="brand-copy"><strong>An Lạc</strong><small>CHÙA ONLINE</small></span></a>
+      <a class="brand" href="#home" aria-label="Chùa Tân Phú - Trang chủ"><span class="brand-mark">${icons.lotus}</span><span class="brand-copy"><strong>Tân Phú</strong><small>CHÙA ONLINE</small></span></a>
       <nav class="top-nav" aria-label="Điều hướng"><a class="nav-item active" href="#home">Chánh điện</a><a class="nav-item" href="#rituals">Nghi lễ</a><a class="nav-item" href="#community">Đạo hữu</a></nav>
       <button class="profile-button" id="profile-button" aria-label="Đổi tên hiển thị"><span class="profile-avatar">☼</span><span id="profile-name"></span><span class="profile-caret">⌄</span></button>
     </header>
@@ -42,7 +42,7 @@ app.innerHTML = `
         <div class="scene-bamboo bamboo-left"><i></i><i></i><i></i><i></i></div><div class="scene-bamboo bamboo-right"><i></i><i></i><i></i></div>
         <div class="temple-roof roof-back"><div class="roof-cap"></div></div><div class="temple-building"><div class="temple-roof"><div class="roof-cap"></div><div class="roof-ridge"></div></div><div class="temple-upper"><span class="temple-window"></span><span class="temple-window"></span><span class="temple-window"></span></div><div class="temple-eaves"></div><div class="temple-pillars"><span></span><span></span><span></span><span></span><span></span></div><div class="temple-door"><div class="buddha-halo"></div><div class="buddha-statue"><span class="buddha-head"></span><span class="buddha-body"></span><span class="buddha-base"></span></div><div class="altar-glow"></div></div><div class="temple-steps"></div></div>
         <div class="scene-lantern lantern-a">✧</div><div class="scene-lantern lantern-b">✧</div><div class="scene-lantern lantern-c">✧</div><div class="scene-path"></div><div class="incense-pot"><div class="pot-smoke"></div><span>☼</span></div>
-        <div class="scene-caption"><span class="caption-dot"></span> CHÁNH ĐIỆN · AN LẠC <span class="caption-divider">/</span> <span id="scene-visitor-count">Mời bạn an tọa</span></div>
+        <div class="scene-caption"><span class="caption-dot"></span> CHÁNH ĐIỆN · TÂN PHÚ <span class="caption-divider">/</span> <span id="scene-visitor-count">Mời bạn an tọa</span></div>
         <div class="scene-quote"><span>“Tâm an, vạn sự an.”</span><small>— Lời nhắc cho hôm nay</small></div>
       </section>
 
@@ -70,7 +70,7 @@ app.innerHTML = `
           <div class="chat-footnote"><span>${icons.sound}</span> Từ bi trong lời nói, an vui trong cộng đồng.</div>
         </aside>
       </div>
-      <footer class="footer"><span>${icons.lotus}<strong>An Lạc</strong> · Một góc chùa nhỏ trên mạng</span><button id="sound-button" class="sound-button">${icons.sound} <span>Âm thanh đang bật</span></button><span class="footer-right">Nguyện mọi người đều được an lành <span>☼</span></span></footer>
+      <footer class="footer"><span>${icons.lotus}<strong>Chùa Tân Phú</strong> · Một góc chùa nhỏ trên mạng</span><button id="sound-button" class="sound-button">${icons.sound} <span>Âm thanh đang bật</span></button><span class="footer-right">Nguyện mọi người đều được an lành <span>☼</span></span></footer>
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -104,9 +104,9 @@ try {
 renderMessages();
 document.querySelector('#profile-name').textContent = currentName;
 
-const RELAY_URL = 'wss://broker.emqx.io:8084/mqtt';
-const RELAY_TOPIC = 'chuatanphu/community/v1';
-const relay = { client: null, id: null, peers: new Map(), timer: null, mode: 'offline' };
+const CHAT_CHANNEL = 'chuatanphu-community';
+const chatState = { mode: 'local', id: localStorage.getItem('an-lac-guest-id') || `guest-${Math.random().toString(16).slice(2, 10)}` };
+localStorage.setItem('an-lac-guest-id', chatState.id);
 const toneCycle = ['sage', 'gold', 'rose', 'blue'];
 
 function pushIncoming(entry) {
@@ -119,84 +119,28 @@ function pushIncoming(entry) {
 function setPresence(count) {
   document.querySelector('#online-count').textContent = count === 1 ? '1 người đang ở đây' : `${count} người đang ở đây`;
   document.querySelector('#scene-visitor-count').textContent = `${count} đạo hữu đang ghé thăm`;
-}
-function relayPublish(payload) {
-  if (!relay.client?.connected) return false;
-  relay.client.publish(RELAY_TOPIC, JSON.stringify(payload), { qos: 0 });
-  return true;
-}
-function announcePresence() {
-  if (!relay.id) return;
-  relayPublish({ type: 'hi', id: relay.id, name: currentName, ts: Date.now() });
-  const cutoff = Date.now() - 50000;
-  for (const [id, peer] of relay.peers) if (peer.ts < cutoff) relay.peers.delete(id);
-  setPresence(relay.peers.size + 1);
+  document.querySelector('#chat-live-dot').classList.add('chat-live');
 }
 
-async function startRelayChat() {
-  try {
-    const { connect } = await import('mqtt');
-    relay.mode = 'relay';
-    relay.id = `devotee-${Math.random().toString(16).slice(2, 10)}`;
-    relay.client = connect(RELAY_URL, { clientId: relay.id, clean: true, connectTimeout: 9000, reconnectPeriod: 4000 });
-    relay.client.on('connect', () => {
-      relay.client.subscribe(RELAY_TOPIC, { qos: 0 });
-      document.querySelector('#chat-live-dot').classList.add('chat-live');
-      announcePresence();
-      notify('Đã vào phòng trò chuyện chung. Mời bạn sẻ chia lời lành.');
-    });
-    relay.client.on('message', (_topic, payload) => {
-      let data;
-      try { data = JSON.parse(payload.toString()); } catch { return; }
-      if (!data || data.id === relay.id) return;
-      if (data.type === 'hi') {
-        relay.peers.set(data.id, { name: data.name, ts: Date.now() });
-        setPresence(relay.peers.size + 1);
-      } else if (data.type === 'bye') {
-        relay.peers.delete(data.id);
-        setPresence(relay.peers.size + 1);
-      } else if (data.type === 'msg') {
-        pushIncoming({ id: data.id + ':' + data.ts, name: data.name, text: data.text, time: timeNow() });
+function startCommunityChat() {
+  if (!supabase) return;
+  channel = supabase.channel(CHAT_CHANNEL, { config: { presence: { key: chatState.id }, broadcast: { self: false } } });
+  channel
+    .on('broadcast', { event: 'msg' }, ({ payload }) => pushIncoming({ id: payload.id, name: payload.name, text: payload.text, time: timeNow() }))
+    .on('presence', { event: 'sync' }, () => {
+      const visitors = Object.values(channel.presenceState()).reduce((sum, sessions) => sum + sessions.length, 0);
+      setPresence(Math.max(visitors, 1));
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        chatState.mode = 'realtime';
+        channel.track({ name: currentName, joined_at: new Date().toISOString() });
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        chatState.mode = 'local';
+        document.querySelector('#chat-live-dot').classList.remove('chat-live');
+        document.querySelector('#online-count').textContent = 'Chưa kết nối';
       }
     });
-    relay.client.on('error', () => {});
-    relay.client.on('close', () => document.querySelector('#chat-live-dot').classList.remove('chat-live'));
-    relay.timer = window.setInterval(announcePresence, 18000);
-    window.addEventListener('pagehide', () => {
-      relayPublish({ type: 'bye', id: relay.id, ts: Date.now() });
-      relay.client?.end(true);
-    });
-  } catch (error) {
-    console.warn('Community relay unavailable; local chat remains.', error.message);
-    relay.mode = 'local';
-  }
-}
-
-async function startCommunityChat() {
-  if (supabase) {
-    try {
-      const { error } = await supabase.from(CHAT_TABLE).select('id').limit(1);
-      if (error) throw error;
-      const { data } = await supabase.from(CHAT_TABLE).select('id,name,text,created_at').order('created_at', { ascending: true }).limit(35);
-      messageRows = (data || []).map((item, index) => ({ id: item.id, name: item.name, text: item.text, time: new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(item.created_at)), tone: toneCycle[index % 4] }));
-      renderMessages();
-      relay.mode = 'supabase';
-      channel = supabase.channel('an-lac-community-chat').on('presence', { event: 'sync' }, () => {
-        const visitors = Object.values(channel.presenceState()).reduce((sum, sessions) => sum + sessions.length, 0);
-        setPresence(visitors);
-        document.querySelector('#chat-live-dot').classList.add('chat-live');
-      }).on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHAT_TABLE }, (payload) => {
-        const row = payload.new;
-        pushIncoming({ id: row.id, name: row.name, text: row.text, time: new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(row.created_at)) });
-      }).subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') await channel.track({ name: currentName, joined_at: new Date().toISOString() });
-      });
-      return;
-    } catch (error) {
-      console.warn('Supabase chat table is not ready; using the community relay.', error.message);
-    }
-  }
-  await startRelayChat();
 }
 startCommunityChat();
 
@@ -208,7 +152,6 @@ document.querySelector('#profile-button').addEventListener('click', () => {
   currentName = clean;
   localStorage.setItem('an-lac-name', currentName);
   document.querySelector('#profile-name').textContent = currentName;
-  if (relay.mode === 'relay') relayPublish({ type: 'hi', id: relay.id, name: currentName, ts: Date.now() });
   channel?.track({ name: currentName, joined_at: new Date().toISOString() }).catch(() => {});
   notify(`Chào ${currentName}, mời bạn an tọa.`);
 });
@@ -219,27 +162,23 @@ document.querySelector('#chat-form').addEventListener('submit', async (event) =>
   const text = input.value.trim();
   if (!text) return;
   if (text.length > 220) return notify('Tin nhắn tối đa 220 ký tự.');
-  if (Date.now() - lastMessageAt < 1500) return notify('Bạn chờ một chút trước khi gửi tin tiếp nhé.');
+  if (Date.now() - lastMessageAt < 1200) return notify('Bạn chờ một chút trước khi gửi tin tiếp nhé.');
   lastMessageAt = Date.now();
-  const message = { name: currentName, text, time: timeNow(), tone: toneCycle[messageRows.length % 4] };
+  const message = { id: `${chatState.id}-${Date.now()}`, name: currentName, text, time: timeNow(), tone: toneCycle[messageRows.length % 4] };
 
-  if (relay.mode === 'supabase') {
-    const { data, error } = await supabase.from(CHAT_TABLE).insert({ name: currentName, text }).select('id,name,text,created_at').single();
-    if (error) {
+  if (chatState.mode === 'realtime' && channel) {
+    const result = await channel.send({ type: 'broadcast', event: 'msg', payload: { id: message.id, name: currentName, text, ts: Date.now() } });
+    if (result !== 'ok') {
       lastMessageAt = 0;
       return notify('Chưa gửi được tin nhắn. Xin thử lại sau ít phút.');
     }
-    if (data) pushIncoming({ id: data.id, name: data.name, text: data.text, time: timeNow() });
-  } else if (relay.mode === 'relay' && relay.client?.connected) {
-    relayPublish({ type: 'msg', id: relay.id, name: currentName, text, ts: Date.now() });
-    messageRows.push(message);
-    messageRows = messageRows.slice(-35);
-    renderMessages();
+    pushIncoming(message);
   } else {
     const userMessages = [...messageRows.filter((row) => row.isLocal), { ...message, isLocal: true }].slice(-15);
     messageRows = [...initialMessages, ...userMessages];
     try { localStorage.setItem(demoStore, JSON.stringify(userMessages)); } catch { /* private browsing */ }
     renderMessages();
+    notify('Tin nhắn đã lưu trên thiết bị này. Phòng chat chung đang kết nối lại.');
   }
   input.value = '';
 });

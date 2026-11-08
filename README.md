@@ -1,14 +1,17 @@
-# An Lạc — Chùa Online
+# Chùa Tân Phú — Chùa Online
 
-Một web experience tiếng Việt lấy cảm hứng từ các nghi lễ trong dự án [zane-tv/tiktok-live-temple-rpc](https://github.com/zane-tv/tiktok-live-temple-rpc), thiết kế như một chánh điện để khách cùng tham quan trong trình duyệt. Giao diện được dựng mới, không chép asset từ repo tham khảo.
+Một chánh điện online tiếng Việt để khách ghé thăm, dâng lễ và trò chuyện cùng nhau. Giao diện được dựng mới, lấy cảm hứng từ ý tưởng nghi lễ của [zane-tv/tiktok-live-temple-rpc](https://github.com/zane-tv/tiktok-live-temple-rpc); không sử dụng asset từ repo đó.
+
+- Trang chạy: https://chuatanphu.vercel.app
+- Mã nguồn: repository riêng `masuda939/chuatanphu` (private)
 
 ## Trải nghiệm trong chánh điện
 
-- Thắp hương, lạy Phật và thả hoa đăng với hoạt ảnh trong không gian chùa.
-- Xin quẻ ngẫu nhiên với một lời nhắc suy ngẫm (mang tính giải trí, không phải dự đoán).
-- Gõ mõ theo nhịp; thỉnh chuông với âm thanh tổng hợp trên thiết bị.
-- Phật tử cùng trò chuyện trong một khung cộng đồng.
-- Tự đặt tên hiển thị, chọn bật/tắt âm thanh và dùng được trên màn hình nhỏ.
+- Thắp hương, lạy Phật và thả hoa đăng với hoạt ảnh ngay trong khung chùa.
+- Xin quẻ ngẫu nhiên kèm một lời nhắc suy ngẫm (mang tính giải trí, không phải dự đoán).
+- Gõ mõ theo nhịp và thỉnh chuông với âm thanh tổng hợp ngay trên thiết bị.
+- Phòng trò chuyện chung theo thời gian thực: tin nhắn hiện với mọi người đang ghé chùa, kèm số người đang online.
+- Tự đặt tên hiển thị, bật/tắt âm thanh, dùng tốt trên điện thoại.
 
 ## Chạy thử trên máy
 
@@ -19,29 +22,28 @@ npm install
 npm run dev
 ```
 
-## Bật chat dùng chung cho tất cả khách
+Tạo `.env.local` từ `.env.example` nếu cần cấu hình Supabase riêng.
 
-Nếu chưa cấu hình Supabase, trang chạy ở chế độ xem thử: các tin nhắn gửi đi chỉ được lưu trong trình duyệt hiện tại; những người dùng khác không nhìn thấy.
+## Trò chuyện cộng đồng
 
-1. Tạo một project tại [Supabase](https://supabase.com/dashboard), chọn region phù hợp và đặt mật khẩu cơ sở dữ liệu mạnh.
-2. Mở **SQL Editor** trong project và chạy nội dung `supabase/schema.sql` để tạo bảng, quyền đọc/ghi giới hạn và Realtime publication.
-3. Trong phần project settings/API của Supabase, lấy **Project URL** và **publishable/anon key**. Đây là thông tin client công khai; tuyệt đối không đưa `service_role` key vào website.
-4. Tạo file `.env.local` ở thư mục gốc, điền:
+Chat dùng **Supabase Realtime Broadcast + Presence**, không cần tạo bảng hay chạy SQL:
 
-   ```env
-   VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
-   VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY
-   ```
+- `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY` là thông tin client công khai, đặt trong `.env.local` khi chạy máy và trong Environment Variables của Vercel khi triển khai.
+- Kênh dùng chung: `chuatanphu-community`.
+- Tin nhắn không được lưu vào cơ sở dữ liệu; khách mới vào sẽ thấy lời chào mẫu và các tin nhắn phát sinh từ lúc họ tham gia.
+- Nếu không cấu hình Supabase hoặc kết nối bị gián đoạn, tin nhắn chỉ lưu trên thiết bị hiện tại và giao diện báo đang kết nối lại.
 
-5. Khởi động lại `npm run dev`. Với Vercel, khai báo hai biến trên ở **Project → Settings → Environment Variables** rồi deploy lại.
+Vì phòng chat công khai không yêu cầu đăng nhập, khi lượng truy cập tăng nên cân nhắc thêm moderation, giới hạn tần suất gửi phía máy chủ và cơ chế báo cáo tin nhắn.
 
-SQL bật chính sách RLS để ai cũng có thể đọc tin nhắn mới trong 7 ngày và gửi tin giới hạn 220 ký tự. Vì chat công khai không yêu cầu đăng nhập, nếu mở cho lượng truy cập lớn thì nên thêm CAPTCHA/Edge Function hoặc dịch vụ moderation, rate limit phía máy chủ và cơ chế report/xóa tin nhắn.
-
-## Build
+## Build và triển khai
 
 ```sh
 npm run build
 npm run preview
 ```
 
-Vercel build bằng `npm run build` và phục vụ thư mục `dist` (đã cấu hình trong `vercel.json`).
+`vercel.json` cấu hình Vite, build bằng `npm run build`, xuất thư mục `dist`. Triển khai production:
+
+```sh
+npx vercel deploy --prod
+```
