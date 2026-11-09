@@ -5,6 +5,7 @@ Một chánh điện online tiếng Việt để khách ghé thăm, dâng lễ v
 - Trang chạy: https://chuatanphu.vercel.app
 - Mã nguồn: repository riêng `masuda939/chuatanphu`
 - Team Vercel riêng: `chuatanphu` (project `chuatanphu`, domain `chuatanphu.vercel.app`)
+- Repo đã nối Git với project: mỗi lần push nhánh `main`, Vercel tự build và deploy production.
 
 ## Trải nghiệm trong chánh điện
 
