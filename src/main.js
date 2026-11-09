@@ -272,7 +272,7 @@ sceneEl.addEventListener('click', (event) => {
   const rect = sceneEl.getBoundingClientRect();
   const px = ((event.clientX - rect.left) / rect.width) * 100;
   const py = 100 - ((event.clientY - rect.top) / rect.height) * 100;
-  if (py < 22) return;
+  if (py > 60) return;
   mover.tx = clamp(px, 10, 90);
   mover.ty = clamp(ceilingFor(clamp(px, 10, 90), py), 5, 50);
   mover.queued = null;
@@ -354,7 +354,6 @@ function playBell() {
   } catch { /* audio is optional on unsupported devices */ }
   notify('Tiếng chuông chùa ngân vang, xin gửi bình an tới muôn nơi. 🔔');
 }
-document.querySelector('.temple-building').addEventListener('click', templeVisit);
 document.querySelectorAll('.ritual-card[data-action]').forEach((button) => button.addEventListener('click', () => {
   switch (button.dataset.action) {
     case 'incense': incenseWalk(); break;
