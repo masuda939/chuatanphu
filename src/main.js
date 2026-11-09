@@ -40,9 +40,9 @@ app.innerHTML = `
       <section class="temple-scene" aria-label="Không gian chánh điện ảo">
         <div class="scene-sky"></div><div class="scene-moon"></div><div class="scene-stars" aria-hidden="true">✦　 ·　　 ✧　　　 ·　✦　　 ·</div><div class="scene-hills hills-far"></div><div class="scene-hills hills-near"></div>
         <div class="scene-bamboo bamboo-left"><i></i><i></i><i></i><i></i></div><div class="scene-bamboo bamboo-right"><i></i><i></i><i></i></div>
-        <div class="temple-roof roof-back"><div class="roof-cap"></div></div><div class="temple-building"><div class="temple-roof"><div class="roof-cap"></div><div class="roof-ridge"></div></div><div class="temple-upper"><span class="temple-window"></span><span class="temple-window"></span><span class="temple-window"></span></div><div class="temple-eaves"></div><div class="temple-pillars"><span></span><span></span><span></span><span></span><span></span></div><div class="temple-door"><div class="buddha-halo"></div><svg class="buddha-svg" viewBox="0 0 60 84" aria-hidden="true"><defs><linearGradient id="buddha-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6e2a4"/><stop offset=".5" stop-color="#d8ae5d"/><stop offset="1" stop-color="#8a6428"/></linearGradient></defs><ellipse cx="30" cy="79" rx="21" ry="4" fill="#191610" opacity=".55"/><path d="M9 77 Q30 68 51 77 L51 81 Q30 73 9 81 Z" fill="#c99f4e"/><path d="M13 74 Q30 66 47 74 L45 78 Q30 71 15 78 Z" fill="url(#buddha-gold)" opacity=".85"/><path d="M30 22 C39 22 43 30 43 41 C43 53 38 62 30 62 C22 62 17 53 17 41 C17 30 21 22 30 22 Z" fill="url(#buddha-gold)"/><path d="M23 45 Q30 51 37 45" stroke="#8a6428" stroke-width="1.2" fill="none" stroke-linecap="round"/><circle cx="30" cy="40" r="3.4" fill="#f0d492"/><circle cx="30" cy="14" r="8" fill="url(#buddha-gold)"/><circle cx="30" cy="5" r="2.6" fill="url(#buddha-gold)"/><path d="M22 14 Q21 18 22.5 20 M38 14 Q39 18 37.5 20" stroke="#8a6428" stroke-width="1" fill="none" stroke-linecap="round"/></svg><div class="altar-glow"></div></div><div class="temple-steps"></div></div>
+        <div class="temple-roof roof-back"><div class="roof-cap"></div></div><div class="temple-building"><div class="temple-roof"><div class="roof-cap"></div><div class="roof-ridge"></div></div><div class="temple-upper"><span class="temple-window"></span><span class="temple-window"></span><span class="temple-window"></span></div><div class="temple-eaves"></div><div class="temple-pillars"><span></span><span></span><span></span><span></span><span></span></div><div class="temple-door"><div class="buddha-halo"></div><img class="buddha-img" src="/assets/buddha-statue.png" alt="Tượng Phật A Di Đà"><div class="altar-glow"></div></div><div class="temple-steps"></div></div>
         <div class="scene-lantern lantern-a">✧</div><div class="scene-lantern lantern-b">✧</div><div class="scene-lantern lantern-c">✧</div><div class="scene-path"></div><div class="devotee" id="devotee" aria-hidden="true"><span class="d-head"></span><span class="d-robe"></span></div><div class="incense-pot"><div class="pot-smoke"></div><span>☼</span></div>
-        <div class="scene-caption"><span class="caption-dot"></span> CHÁNH ĐIỆN · TÂN PHÚ <span class="caption-divider">/</span> <span id="scene-visitor-count">Mời bạn an tọa</span></div>
+        <div class="scene-caption"><span class="caption-dot"></span> CHÁNH ĐIỆN · TÂN PHÚ <span class="caption-divider">/</span> <span id="scene-visitor-count">Mời bạn an tọa</span></div><div class="scene-hint">← ↑ ↓ → hoặc bấm nền để đi quanh chùa</div></div>
         <div class="scene-quote"><span>“Tâm an, vạn sự an.”</span><small>— Lời nhắc cho hôm nay</small></div>
       </section>
 
@@ -197,40 +197,89 @@ function incenseRitual() {
   window.setTimeout(() => pot.classList.remove('glowing'), 2300);
   notify('Nén tâm hương đã được dâng lên. Xin nguyện điều lành.');
 }
-let templeVisiting = false;
-function templeVisit() {
-  if (templeVisiting) return;
-  templeVisiting = true;
+function doProstration() {
   const devotee = document.querySelector('#devotee');
-  const compact = window.matchMedia('(max-width:700px)').matches;
-  devotee.classList.add('walking');
-  devotee.style.left = compact ? '50%' : '45%';
-  devotee.style.bottom = compact ? '21%' : '25%';
-  window.setTimeout(() => {
-    devotee.classList.remove('walking');
-    devotee.classList.add('prostrating');
-    incenseRitual();
-    notify('Đạo hữu tiến vào chánh điện, đảnh lễ Tam Bái trước Đức Phật. 🙏');
-  }, 2600);
-  window.setTimeout(() => {
-    devotee.classList.remove('prostrating');
-    devotee.classList.add('walking');
-    devotee.style.left = '21%';
-    devotee.style.bottom = '8%';
-  }, 5400);
-  window.setTimeout(() => {
-    devotee.classList.remove('walking');
-    templeVisiting = false;
-  }, 8100);
+  if (devotee.classList.contains('prostrating')) return;
+  devotee.classList.remove('walking');
+  devotee.classList.add('prostrating');
+  window.setTimeout(() => devotee.classList.remove('prostrating'), 2750);
 }
-function bowRitual() {
-  const buddha = document.querySelector('.temple-door');
-  buddha.classList.remove('blessing');
-  void buddha.offsetWidth;
-  buddha.classList.add('blessing');
-  window.setTimeout(() => buddha.classList.remove('blessing'), 2400);
-  notify('Bạn vừa thành kính đảnh lễ. Tâm nguyện an lành. 🙏');
+const devotion = () => { incenseRitual(); doProstration(); notify('Đạo hữu thành kính đảnh lễ Tam Bái trước Đức Phật. 🙏'); };
+
+const sceneEl = document.querySelector('.temple-scene');
+const devoteeEl = document.querySelector('#devotee');
+const mover = { x: 21, y: 8, tx: null, ty: null, facing: 1, keys: new Set(), queued: null };
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const ceilingFor = (x, y) => (x > 35 && x < 65 ? Math.min(y, 50) : Math.min(y, 44));
+function drawDevotee() {
+  const scale = 0.58 + (mover.y / 50) * 0.62;
+  devoteeEl.style.left = `${mover.x}%`;
+  devoteeEl.style.bottom = `${mover.y}%`;
+  devoteeEl.style.zIndex = String(Math.round(4 + mover.y));
+  devoteeEl.style.transform = `translateX(-50%) scale(${mover.facing < 0 ? -scale : scale},${scale})`;
 }
+function stepMover(dt) {
+  let vx = 0;
+  let vy = 0;
+  if (mover.keys.has('left')) vx -= 1;
+  if (mover.keys.has('right')) vx += 1;
+  if (mover.keys.has('up')) vy += 1;
+  if (mover.keys.has('down')) vy -= 1;
+  if (!vx && !vy && mover.tx !== null) {
+    const dx = mover.tx - mover.x;
+    const dy = mover.ty - mover.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 1.1) {
+      mover.tx = null;
+      const queued = mover.queued;
+      mover.queued = null;
+      if (queued) queued();
+    } else { vx = dx / dist; vy = dy / dist; }
+  }
+  if (vx || vy) {
+    const len = Math.hypot(vx, vy);
+    const speed = 26 * dt;
+    mover.x = clamp(mover.x + (vx / len) * speed, 10, 90);
+    mover.y = clamp(ceilingFor(mover.x, mover.y + (vy / len) * speed * 0.55), 5, 50);
+    if (vx) mover.facing = vx > 0 ? 1 : -1;
+    devoteeEl.classList.add('walking');
+  } else {
+    devoteeEl.classList.remove('walking');
+  }
+  drawDevotee();
+}
+let moverLast = performance.now();
+function moverLoop(now) {
+  stepMover((now - moverLast) / 1000);
+  moverLast = now;
+  requestAnimationFrame(moverLoop);
+}
+requestAnimationFrame(moverLoop);
+drawDevotee();
+
+const KEYMAP = { arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right', arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down' };
+document.addEventListener('keydown', (event) => {
+  const tag = event.target?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || !document.querySelector('#modal-backdrop').hidden) return;
+  const key = KEYMAP[event.key.toLowerCase()];
+  if (key) { mover.keys.add(key); event.preventDefault(); return; }
+  if (event.key === ' ' && Math.abs(mover.x - 50) < 9 && mover.y > 34) { event.preventDefault(); devotion(); }
+});
+document.addEventListener('keyup', (event) => { const key = KEYMAP[event.key.toLowerCase()]; if (key) mover.keys.delete(key); });
+sceneEl.addEventListener('click', (event) => {
+  if (event.target.closest('.ritual-card, button, input, a, .scene-quote')) return;
+  if (event.target.closest('.temple-building')) { mover.tx = 45.5; mover.ty = 37; mover.queued = devotion; return; }
+  const rect = sceneEl.getBoundingClientRect();
+  const px = ((event.clientX - rect.left) / rect.width) * 100;
+  const py = 100 - ((event.clientY - rect.top) / rect.height) * 100;
+  if (py < 22) return;
+  mover.tx = clamp(px, 10, 90);
+  mover.ty = clamp(ceilingFor(clamp(px, 10, 90), py), 5, 50);
+  mover.queued = null;
+});
+
+function bowRitual() { mover.tx = 50; mover.ty = 37; mover.queued = devotion; }
+function incenseWalk() { mover.tx = 52; mover.ty = 27; mover.queued = incenseRitual; notify('Đạo hữu tiến lên bát hương để dâng nén tâm hương.'); }
 function lanternRitual() {
   const path = document.querySelector('.scene-path');
   const lantern = document.createElement('span');
@@ -308,7 +357,7 @@ function playBell() {
 document.querySelector('.temple-building').addEventListener('click', templeVisit);
 document.querySelectorAll('.ritual-card[data-action]').forEach((button) => button.addEventListener('click', () => {
   switch (button.dataset.action) {
-    case 'incense': incenseRitual(); break;
+    case 'incense': incenseWalk(); break;
     case 'bow': bowRitual(); break;
     case 'lantern': lanternRitual(); break;
     case 'fortune': showFortune(); break;

@@ -1,6 +1,6 @@
 # Chùa Tân Phú — Chùa Online
 
-Một chánh điện online tiếng Việt để khách ghé thăm, dâng lễ và trò chuyện cùng nhau. Giao diện được dựng mới, lấy cảm hứng từ ý tưởng nghi lễ của [zane-tv/tiktok-live-temple-rpc](https://github.com/zane-tv/tiktok-live-temple-rpc); không sử dụng asset từ repo đó.
+Một chánh điện online tiếng Việt để khách ghé thăm, dâng lễ và trò chuyện cùng nhau. Giao diện được dựng mới, lấy cảm hứng từ ý tưởng nghi lễ của [zane-tv/tiktok-live-temple-rpc](https://github.com/zane-tv/tiktok-live-temple-rpc). Tượng Phật trong chánh điện được render từ mô hình [gilt-bronze Buddha CC0 (Zenodo record 10337923)](https://zenodo.org/records/10337923) — cùng nguồn CC0 mà repo tham khảo sử dụng, đã xác minh md5.
 
 - Trang chạy: https://chuatanphu.vercel.app
 - Mã nguồn: repository riêng `masuda939/chuatanphu`
@@ -10,7 +10,7 @@ Một chánh điện online tiếng Việt để khách ghé thăm, dâng lễ v
 ## Trải nghiệm trong chánh điện
 
 - Thắp hương, lạy Phật và thả hoa đăng với hoạt ảnh ngay trong khung chùa.
-- Bấm vào chánh điện: đạo hữu áo lam đi vào sảnh, đảnh lễ Tam Bái trước Phật rồi quay ra.
+- Nhân vật đạo hữu di chuyển tự do bằng phím WASD/mũi tên hoặc bấm vào nền sân chùa; bấm vào chánh điện để đi vào đảnh lễ Tam Bái; phím cách lạy Phật khi đứng trước bàn thờ.
 - Xin quẻ ngẫu nhiên kèm một lời nhắc suy ngẫm (mang tính giải trí, không phải dự đoán).
 - Gõ mõ theo nhịp và thỉnh chuông với âm thanh tổng hợp ngay trên thiết bị.
 - Phòng trò chuyện chung theo thời gian thực: tin nhắn hiện với mọi người đang ghé chùa, kèm số người đang online.
